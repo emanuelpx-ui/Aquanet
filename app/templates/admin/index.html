@@ -1,0 +1,338 @@
+{% extends "base.html" %}
+{% block title %}Administración — AquaNet Puebla{% endblock %}
+
+{% block content %}
+<h4 class="fw-semibold mb-4">
+  <i class="bi bi-gear me-2 text-primary"></i>Panel de administración
+</h4>
+
+<!-- Tabs -->
+<ul class="nav nav-tabs mb-4" id="adminTabs">
+  <li class="nav-item">
+    <a class="nav-link active" data-bs-toggle="tab" href="#tab-usuarios">
+      <i class="bi bi-people me-1"></i>Usuarios
+    </a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" data-bs-toggle="tab" href="#tab-nodos">
+      <i class="bi bi-node-plus me-1"></i>Nodos de red
+    </a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" data-bs-toggle="tab" href="#tab-aristas">
+      <i class="bi bi-diagram-3 me-1"></i>Tuberías
+    </a>
+  </li>
+</ul>
+
+<div class="tab-content">
+
+  <!-- ── TAB USUARIOS ── -->
+  <div class="tab-pane fade show active" id="tab-usuarios">
+    <div class="row g-4">
+
+      <!-- Formulario nuevo usuario -->
+      <div class="col-lg-4">
+        <div class="card">
+          <div class="card-header">Nuevo usuario</div>
+          <div class="card-body p-3">
+            <form method="POST" action="{{ url_for('admin.usuario_nuevo') }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}"/>
+              <div class="mb-2">
+                <label class="form-label" style="font-size:.82rem">Nombre</label>
+                <input type="text" name="nombre" class="form-control form-control-sm" required/>
+              </div>
+              <div class="mb-2">
+                <label class="form-label" style="font-size:.82rem">Correo</label>
+                <input type="email" name="email" class="form-control form-control-sm" required/>
+              </div>
+              <div class="mb-2">
+                <label class="form-label" style="font-size:.82rem">Contraseña</label>
+                <input type="password" name="password" class="form-control form-control-sm" required/>
+              </div>
+              <div class="mb-3">
+                <label class="form-label" style="font-size:.82rem">Rol</label>
+                <select name="rol" class="form-select form-select-sm">
+                  <option value="ciudadano">Ciudadano</option>
+                  <option value="operador">Operador</option>
+                  <option value="administrador">Administrador</option>
+                </select>
+              </div>
+              <button type="submit" class="btn btn-primary btn-sm w-100">
+                <i class="bi bi-plus-lg me-1"></i>Crear usuario
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lista de usuarios -->
+      <div class="col-lg-8">
+        <div class="card">
+          <div class="card-header">Usuarios registrados ({{ usuarios|length }})</div>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Nombre</th>
+                  <th>Email</th>
+                  <th>Rol</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for u in usuarios %}
+                <tr>
+                  <td>{{ u.nombre }}</td>
+                  <td style="font-size:.82rem">{{ u.email }}</td>
+                  <td>
+                    <form method="POST"
+                          action="{{ url_for('admin.usuario_rol', user_id=u.id) }}"
+                          class="d-flex gap-1">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token }}"/>
+                      <select name="rol" class="form-select form-select-sm"
+                              style="width:120px" onchange="this.form.submit()">
+                        <option value="ciudadano"     {% if u.rol=='ciudadano'     %}selected{% endif %}>Ciudadano</option>
+                        <option value="operador"      {% if u.rol=='operador'      %}selected{% endif %}>Operador</option>
+                        <option value="administrador" {% if u.rol=='administrador' %}selected{% endif %}>Admin</option>
+                      </select>
+                    </form>
+                  </td>
+                  <td>
+                    <span class="badge {% if u.activo %}bg-success{% else %}bg-danger{% endif %}">
+                      {% if u.activo %}Activo{% else %}Inactivo{% endif %}
+                    </span>
+                  </td>
+                  <td>
+                    <form method="POST"
+                          action="{{ url_for('admin.usuario_toggle', user_id=u.id) }}">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token }}"/>
+                      <button type="submit"
+                              class="btn btn-sm {% if u.activo %}btn-outline-danger{% else %}btn-outline-success{% endif %}">
+                        {% if u.activo %}Desactivar{% else %}Activar{% endif %}
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TAB NODOS ── -->
+  <div class="tab-pane fade" id="tab-nodos">
+    <div class="row g-4">
+
+      <!-- Formulario nuevo nodo -->
+      <div class="col-lg-4">
+        <div class="card">
+          <div class="card-header">Nuevo nodo</div>
+          <div class="card-body p-3">
+            <form method="POST" action="{{ url_for('admin.nodo_nuevo') }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}"/>
+              <div class="mb-2">
+                <label class="form-label" style="font-size:.82rem">Nombre</label>
+                <input type="text" name="nombre" class="form-control form-control-sm" required/>
+              </div>
+              <div class="mb-2">
+                <label class="form-label" style="font-size:.82rem">Tipo</label>
+                <select name="tipo" class="form-select form-select-sm">
+                  <option value="deposito">Depósito</option>
+                  <option value="distribucion">Distribución</option>
+                  <option value="colonia">Colonia</option>
+                </select>
+              </div>
+              <div class="row g-2 mb-2">
+                <div class="col">
+                  <label class="form-label" style="font-size:.82rem">Latitud</label>
+                  <input type="number" name="latitud" step="0.0000001"
+                         class="form-control form-control-sm"
+                         placeholder="19.0414" required/>
+                </div>
+                <div class="col">
+                  <label class="form-label" style="font-size:.82rem">Longitud</label>
+                  <input type="number" name="longitud" step="0.0000001"
+                         class="form-control form-control-sm"
+                         placeholder="-98.2063" required/>
+                </div>
+              </div>
+              <div class="row g-2 mb-3">
+                <div class="col">
+                  <label class="form-label" style="font-size:.82rem">Capacidad (L/h)</label>
+                  <input type="number" name="capacidad" class="form-control form-control-sm"
+                         value="0" min="0"/>
+                </div>
+                <div class="col">
+                  <label class="form-label" style="font-size:.82rem">Demanda (L/h)</label>
+                  <input type="number" name="demanda" class="form-control form-control-sm"
+                         value="0" min="0"/>
+                </div>
+              </div>
+              <button type="submit" class="btn btn-primary btn-sm w-100">
+                <i class="bi bi-plus-lg me-1"></i>Agregar nodo
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lista de nodos -->
+      <div class="col-lg-8">
+        <div class="card">
+          <div class="card-header">Nodos registrados ({{ nodos|length }})</div>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Nombre</th>
+                  <th>Tipo</th>
+                  <th>Latitud</th>
+                  <th>Longitud</th>
+                  <th>Capacidad</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for n in nodos %}
+                <tr>
+                  <td>{{ n.nombre }}</td>
+                  <td><span class="badge bg-secondary">{{ n.tipo }}</span></td>
+                  <td style="font-size:.82rem">{{ n.latitud }}</td>
+                  <td style="font-size:.82rem">{{ n.longitud }}</td>
+                  <td style="font-size:.82rem">{{ n.capacidad }}</td>
+                  <td>
+                    <form method="POST"
+                          action="{{ url_for('admin.nodo_eliminar', nodo_id=n.id) }}">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token }}"/>
+                      <button type="submit" class="btn btn-outline-danger btn-sm"
+                              onclick="return confirm('¿Eliminar nodo?')">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TAB ARISTAS ── -->
+  <div class="tab-pane fade" id="tab-aristas">
+    <div class="row g-4">
+
+      <!-- Formulario nueva tubería -->
+      <div class="col-lg-4">
+        <div class="card">
+          <div class="card-header">Nueva tubería</div>
+          <div class="card-body p-3">
+            <form method="POST" action="{{ url_for('admin.arista_nueva') }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}"/>
+              <div class="mb-2">
+                <label class="form-label" style="font-size:.82rem">Nodo origen</label>
+                <select name="origen" class="form-select form-select-sm" required>
+                  <option value="">Selecciona...</option>
+                  {% for n in nodos %}
+                  <option value="{{ n.id }}">{{ n.nombre }} ({{ n.tipo }})</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="mb-2">
+                <label class="form-label" style="font-size:.82rem">Nodo destino</label>
+                <select name="destino" class="form-select form-select-sm" required>
+                  <option value="">Selecciona...</option>
+                  {% for n in nodos %}
+                  <option value="{{ n.id }}">{{ n.nombre }} ({{ n.tipo }})</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label" style="font-size:.82rem">Capacidad (L/h)</label>
+                <input type="number" name="capacidad" class="form-control form-control-sm"
+                       value="0" min="0"/>
+              </div>
+              <button type="submit" class="btn btn-primary btn-sm w-100">
+                <i class="bi bi-plus-lg me-1"></i>Agregar tubería
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lista de aristas -->
+      <div class="col-lg-8">
+        <div class="card">
+          <div class="card-header">Tuberías registradas ({{ aristas|length }})</div>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Origen</th>
+                  <th>Destino</th>
+                  <th>Capacidad</th>
+                  <th>Estado</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for a in aristas %}
+                <tr>
+                  <td>{{ a.origen }}</td>
+                  <td>{{ a.destino }}</td>
+                  <td style="font-size:.82rem">{{ a.capacidad }}</td>
+                  <td>
+                    <span class="badge {% if a.estado=='activa' %}bg-success{% else %}bg-danger{% endif %}">
+                      {{ a.estado }}
+                    </span>
+                  </td>
+                  <td>
+                    <form method="POST"
+                          action="{{ url_for('admin.arista_eliminar', arista_id=a.id) }}">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token }}"/>
+                      <button type="submit" class="btn btn-outline-danger btn-sm"
+                              onclick="return confirm('¿Eliminar tubería?')">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function validarCoordenadas(lat, lng) {
+  const bounds = {
+    minLat: 18.7, maxLat: 19.4,
+    minLng: -98.6, maxLng: -97.8
+  };
+  return lat >= bounds.minLat && lat <= bounds.maxLat &&
+         lng >= bounds.minLng && lng <= bounds.maxLng;
+}
+
+document.querySelector('form[action*="nodo/nuevo"]').addEventListener('submit', function(e) {
+  const lat = parseFloat(this.querySelector('[name="latitud"]').value);
+  const lng = parseFloat(this.querySelector('[name="longitud"]').value);
+  if (!validarCoordenadas(lat, lng)) {
+    e.preventDefault();
+    alert('Las coordenadas deben estar dentro del estado de Puebla.\nLat: 18.7 a 19.4\nLng: -98.6 a -97.8');
+  }
+});
+</script>
+
+{% endblock %}

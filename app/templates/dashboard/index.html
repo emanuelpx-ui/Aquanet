@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — AquaNet Puebla{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<h4 class="fw-semibold mb-4">
+  <i class="bi bi-bar-chart me-2 text-primary"></i>Dashboard
+</h4>
+
+<!-- KPIs -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="card text-center p-3">
+      <div class="fs-2 fw-bold text-primary">{{ kpis.activos or 0 }}</div>
+      <div class="text-muted" style="font-size:.82rem">Reportes activos</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card text-center p-3">
+      <div class="fs-2 fw-bold text-danger">{{ kpis.criticos or 0 }}</div>
+      <div class="text-muted" style="font-size:.82rem">Críticos</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card text-center p-3">
+      <div class="fs-2 fw-bold text-success">{{ kpis.resueltos or 0 }}</div>
+      <div class="text-muted" style="font-size:.82rem">Resueltos</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card text-center p-3">
+      <div class="fs-2 fw-bold text-warning">{{ kpis.ultimas_24h or 0 }}</div>
+      <div class="text-muted" style="font-size:.82rem">Últimas 24h</div>
+    </div>
+  </div>
+</div>
+
+<!-- Gráficas -->
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card p-3">
+      <div class="fw-medium mb-3">Reportes por estado</div>
+      <canvas id="grafEstado" height="200"></canvas>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card p-3">
+      <div class="fw-medium mb-3">Últimos 7 días</div>
+      <canvas id="grafDias" height="200"></canvas>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card p-3">
+      <div class="fw-medium mb-3">Reportes por tipo</div>
+      <canvas id="grafTipo" height="220"></canvas>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card p-3">
+      <div class="fw-medium mb-3">IP promedio</div>
+      <div class="text-center py-4">
+        <div class="display-4 fw-bold text-primary">{{ kpis.ip_promedio or 0 }}</div>
+        <div class="text-muted">Índice de prioridad promedio</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Críticos pendientes -->
+{% if criticos %}
+<div class="card">
+  <div class="card-header fw-medium">
+    <i class="bi bi-exclamation-triangle me-2 text-danger"></i>Reportes críticos pendientes
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Código</th>
+          <th>Tipo</th>
+          <th>Estado</th>
+          <th>IP</th>
+          <th>Horas</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in criticos %}
+        <tr>
+          <td><code>{{ r.codigo_seguimiento }}</code></td>
+          <td>{{ r.tipo_nombre }}</td>
+          <td><span class="badge bg-secondary">{{ r.estado | replace('_',' ') | capitalize }}</span></td>
+          <td><span class="badge bg-danger">{{ r.indice_prioridad }}</span></td>
+          <td>{{ r.horas }}h</td>
+          <td>
+            <a href="{{ url_for('reportes.detalle', reporte_id=r.id) }}"
+               class="btn btn-outline-primary btn-sm">Ver</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Gráfica por estado
+new Chart(document.getElementById('grafEstado'), {
+  type: 'doughnut',
+  data: {
+    labels: [{% for e in por_estado %}'{{ e.estado | replace("_"," ") | capitalize }}'{% if not loop.last %},{% endif %}{% endfor %}],
+    datasets: [{ data: [{% for e in por_estado %}{{ e.total }}{% if not loop.last %},{% endif %}{% endfor %}],
+      backgroundColor: ['#1890ff','#fa8c16','#52c41a','#ff4d4f','#722ed1','#13c2c2'] }]
+  },
+  options: { plugins: { legend: { position: 'bottom' } } }
+});
+
+// Gráfica últimos 7 días
+new Chart(document.getElementById('grafDias'), {
+  type: 'line',
+  data: {
+    labels: [{% for d in por_dia %}'{{ d.dia }}'{% if not loop.last %},{% endif %}{% endfor %}],
+    datasets: [{ label: 'Reportes', data: [{% for d in por_dia %}{{ d.total }}{% if not loop.last %},{% endif %}{% endfor %}],
+      borderColor: '#0057b8', backgroundColor: 'rgba(0,87,184,.1)', fill: true, tension: .3 }]
+  },
+  options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+});
+
+// Gráfica por tipo
+new Chart(document.getElementById('grafTipo'), {
+  type: 'bar',
+  data: {
+    labels: [{% for t in por_tipo %}'{{ t.tipo }}'{% if not loop.last %},{% endif %}{% endfor %}],
+    datasets: [{ label: 'Reportes', data: [{% for t in por_tipo %}{{ t.total }}{% if not loop.last %},{% endif %}{% endfor %}],
+      backgroundColor: '#0057b8' }]
+  },
+  options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,34 @@
+# ─────────────────────────────────────────────
+#  AquaNet Puebla — Dependencias del proyecto
+# ─────────────────────────────────────────────
+
+# Framework principal
+Flask==3.0.3
+Flask-Login==0.6.3
+
+# Seguridad
+bcrypt==4.1.3
+Flask-WTF==1.2.1          # CSRF protection en formularios
+
+# Base de datos
+psycopg2-binary>=2.9.9,<3.0.0    # Driver nativo PostgreSQL sin ORM
+
+# Tareas programadas (recálculo IP horario)
+APScheduler==3.10.4
+
+# Grafos y algoritmos de red
+networkx==3.3
+
+# Manejo de archivos / fotos de evidencia
+Pillow==12.2.0
+Werkzeug==3.0.3           # Viene con Flask, útil para secure_filename
+
+# Variables de entorno
+python-dotenv==1.0.1
+
+# Utilidades
+click==8.1.7
+
+
+email-validator==2.1.1
+# Para pruebas unitarias

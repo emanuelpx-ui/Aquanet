@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Consultar reporte — AquaNet Puebla{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-5">
+    <h4 class="fw-semibold mb-4">
+      <i class="bi bi-search me-2 text-primary"></i>Consultar reporte
+    </h4>
+
+    <div class="card mb-4">
+      <div class="card-body p-4">
+        <form method="POST" action="{{ url_for('reportes.consultar') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}"/>
+          <label class="form-label">Código de seguimiento</label>
+          <div class="input-group">
+            <input type="text" name="codigo" class="form-control"
+                   placeholder="AQP-2025-00001"
+                   value="{{ codigo }}" style="font-family:monospace"/>
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-search"></i>
+            </button>
+          </div>
+          <p class="text-muted mt-2" style="font-size:.8rem">
+            Ingresa el código que recibiste al crear tu reporte.
+          </p>
+        </form>
+      </div>
+    </div>
+
+    {% if reporte %}
+    <div class="card">
+      <div class="card-header fw-medium">
+        <code>{{ reporte.codigo_seguimiento }}</code>
+      </div>
+      <div class="card-body p-4">
+        <div class="row g-3">
+          <div class="col-6">
+            <div class="text-muted mb-1" style="font-size:.78rem">TIPO</div>
+            <div class="fw-medium">{{ reporte.tipo_nombre }}</div>
+          </div>
+          <div class="col-6">
+            <div class="text-muted mb-1" style="font-size:.78rem">ESTADO</div>
+            <span class="badge bg-secondary">
+              {{ reporte.estado | replace('_',' ') | capitalize }}
+            </span>
+          </div>
+          <div class="col-6">
+            <div class="text-muted mb-1" style="font-size:.78rem">PRIORIDAD</div>
+            <span class="badge badge-{{ reporte.nivel_urgencia }}">
+              {{ reporte.nivel_urgencia | capitalize }}
+            </span>
+          </div>
+          <div class="col-6">
+            <div class="text-muted mb-1" style="font-size:.78rem">FECHA</div>
+            <div style="font-size:.87rem">{{ reporte.fecha_creacion | fecha_corta }}</div>
+          </div>
+          {% if reporte.descripcion %}
+          <div class="col-12">
+            <div class="text-muted mb-1" style="font-size:.78rem">DESCRIPCIÓN</div>
+            <div style="font-size:.87rem">{{ reporte.descripcion }}</div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

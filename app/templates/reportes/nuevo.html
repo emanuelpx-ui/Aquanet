@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Nuevo reporte — AquaNet Puebla{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+  #mapa { height: 350px; border-radius: 8px; border: 1.5px solid #dde3ee; }
+  #mapa.error { border-color: #dc3545; }
+  .pin-info { font-size: .82rem; color: #6b7a99; margin-top: .4rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <h4 class="fw-semibold mb-4">
+      <i class="bi bi-flag me-2 text-primary"></i>Nuevo reporte
+    </h4>
+
+    <div class="card">
+      <div class="card-body p-4">
+        <form method="POST" enctype="multipart/form-data" novalidate>
+          {{ form.hidden_tag() }}
+
+          <!-- Tipo de problema -->
+          <div class="mb-3">
+            <label class="form-label">Tipo de problema</label>
+            <select name="id_tipo" class="form-select {% if form.id_tipo.errors %}is-invalid{% endif %}">
+              <option value="">Selecciona...</option>
+              {% for id, nombre in form.id_tipo.choices %}
+                <option value="{{ id }}" {% if form.id_tipo.data == id %}selected{% endif %}>
+                  {{ nombre }}
+                </option>
+              {% endfor %}
+            </select>
+            {% for e in form.id_tipo.errors %}
+              <div class="invalid-feedback">{{ e }}</div>
+            {% endfor %}
+          </div>
+
+          <!-- Descripción -->
+          <div class="mb-3">
+            <label class="form-label">Descripción <span class="text-muted" style="font-size:.78rem">(opcional)</span></label>
+            <textarea name="descripcion" class="form-control" rows="3"
+                      placeholder="Describe el problema con más detalle...">{{ form.descripcion.data or '' }}</textarea>
+          </div>
+
+          <!-- Mapa -->
+          <div class="mb-3">
+            <label class="form-label">Ubicación del problema</label>
+            <div id="mapa"></div>
+            <p class="pin-info"><i class="bi bi-cursor me-1"></i>Haz clic en el mapa para marcar la ubicación</p>
+            <input type="hidden" name="latitud"  id="latitud"  value="{{ form.latitud.data or '' }}"/>
+            <input type="hidden" name="longitud" id="longitud" value="{{ form.longitud.data or '' }}"/>
+            {% if form.latitud.errors %}
+              <div class="text-danger mt-1" style="font-size:.78rem">{{ form.latitud.errors[0] }}</div>
+            {% endif %}
+          </div>
+
+          <!-- Foto -->
+          <div class="mb-3">
+            <label class="form-label">Foto de evidencia <span class="text-muted" style="font-size:.78rem">(opcional)</span></label>
+            <input type="file" name="foto" class="form-control" accept="image/*"/>
+          </div>
+
+          <!-- Anónimo -->
+          <div class="mb-4 form-check">
+            <input type="checkbox" class="form-check-input" name="anonimo" id="anonimo"
+                   {% if form.anonimo.data %}checked{% endif %}/>
+            <label class="form-check-label" for="anonimo" style="font-size:.87rem">
+              Enviar de forma anónima
+            </label>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-send me-1"></i>Enviar reporte
+            </button>
+            <a href="{{ url_for('reportes.index') }}" class="btn btn-outline-secondary">Cancelar</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  const map    = L.map('mapa').setView([19.0414, -98.2063], 13);
+  let marker   = null;
+  const latInp = document.getElementById('latitud');
+  const lngInp = document.getElementById('longitud');
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap'
+  }).addTo(map);
+
+  // Si ya había coordenadas (error de validación), restaurar marcador
+  if (latInp.value && lngInp.value) {
+    marker = L.marker([latInp.value, lngInp.value]).addTo(map);
+    map.setView([latInp.value, lngInp.value], 15);
+  }
+
+  map.on('click', function(e) {
+    const { lat, lng } = e.latlng;
+    latInp.value = lat.toFixed(7);
+    lngInp.value = lng.toFixed(7);
+    if (marker) marker.setLatLng(e.latlng);
+    else marker = L.marker(e.latlng).addTo(map);
+    document.getElementById('mapa').classList.remove('error');
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,37 @@
+services:
+  db:
+    image: postgis/postgis:17-3.5
+    container_name: aquanet_postgres
+    restart: always
+    environment:
+      POSTGRES_DB: ${DB_NAME:-aquanet_puebla}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-12345}
+    ports:
+      # Mapea el puerto host (5435) al puerto estándar de PostgreSQL (5432)
+      - "${DB_PORT:-5435}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-aquanet_puebla}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  flyway:
+    image: flyway/flyway:latest
+    container_name: aquanet_flyway
+    depends_on:
+      db:
+        condition: service_healthy
+    command: -connectRetries=60 migrate
+    volumes:
+      - ./database/migrations:/flyway/sql
+    environment:
+      FLYWAY_URL: jdbc:postgresql://db:5432/${DB_NAME:-aquanet_puebla}
+      FLYWAY_USER: ${DB_USER:-postgres}
+      FLYWAY_PASSWORD: ${DB_PASSWORD:-12345}
+
+volumes:
+  pgdata:
+    driver: local

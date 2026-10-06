@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Inicio — AquaNet Puebla{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h4 class="fw-semibold mb-0">
+      Hola, {{ current_user.nombre.split()[0] }} 👋
+    </h4>
+    <p class="text-muted mb-0" style="font-size:.87rem">
+      Bienvenido a AquaNet Puebla
+    </p>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-4">
+    <div class="card h-100 border-0" style="background:#e8f3ff;">
+      <div class="card-body p-4">
+        <i class="bi bi-flag-fill text-primary fs-2 mb-3 d-block"></i>
+        <h6 class="fw-semibold">Reportar incidencia</h6>
+        <p class="text-muted mb-3" style="font-size:.85rem">
+          Informa sobre fugas, cortes o problemas en la red de agua de tu colonia.
+        </p>
+        <a href="{{ url_for('reportes.index') }}" class="btn btn-primary btn-sm">
+          Nuevo reporte
+        </a>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card h-100 border-0" style="background:#fff7e8;">
+      <div class="card-body p-4">
+        <i class="bi bi-map-fill fs-2 mb-3 d-block" style="color:#fa8c16"></i>
+        <h6 class="fw-semibold">Ver mapa de incidencias</h6>
+        <p class="text-muted mb-3" style="font-size:.85rem">
+          Consulta el mapa en tiempo real con todas las incidencias activas por zona.
+        </p>
+        <a href="{{ url_for('mapa.index') }}" class="btn btn-sm"
+           style="background:#fa8c16;color:#fff">Ver mapa</a>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card h-100 border-0" style="background:#f0fff4;">
+      <div class="card-body p-4">
+        <i class="bi bi-search fs-2 mb-3 d-block" style="color:#52c41a"></i>
+        <h6 class="fw-semibold">Consultar mi reporte</h6>
+        <p class="text-muted mb-3" style="font-size:.85rem">
+          Ingresa tu código AQP-YYYY-NNNNN para ver el estado de tu reporte.
+        </p>
+        <a href="{{ url_for('reportes.index') }}" class="btn btn-sm"
+           style="background:#52c41a;color:#fff">Consultar</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

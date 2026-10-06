@@ -1,0 +1,39 @@
+# ─────────────────────────────────────────────
+#  AquaNet Puebla — .dockerignore
+# ─────────────────────────────────────────────
+
+# Control de versiones
+.git
+.gitignore
+.dockerignore
+
+# Entornos virtuales
+venv
+.venv
+env
+ENV
+
+# Bytecode y cachés de Python
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
+.pytest_cache
+.coverage
+htmlcov
+
+# Variables de entorno locales
+.env
+.env.*
+
+# Pruebas y documentación
+tests
+README.md
+
+# Configuraciones de IDE y OS
+.vscode
+.idea
+*.sublime-*
+.DS_Store
+Thumbs.db
+*.log

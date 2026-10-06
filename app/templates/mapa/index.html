@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% block title %}Mapa de incidencias — AquaNet Puebla{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+  #mapa { height: calc(100vh - 180px); border-radius: 12px; }
+  .legend {
+    background: white; padding: 10px 14px; border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.12); font-size: .8rem; line-height: 2;
+  }
+  .legend-dot {
+    display: inline-block; width: 10px; height: 10px;
+    border-radius: 50%; margin-right: 6px;
+  }
+  .filtros { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: .75rem; }
+  .filtros .btn { font-size: .8rem; padding: 4px 12px; }
+  .btn-urgencia.active { opacity: 1 !important; }
+  .btn-urgencia { opacity: .55; transition: opacity .15s; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="fw-semibold mb-0">
+    <i class="bi bi-map me-2 text-primary"></i>Mapa de incidencias
+  </h4>
+  {% if current_user.puede_gestionar_reportes %}
+  <button class="btn btn-outline-primary btn-sm" onclick="recalcularIP()">
+    <i class="bi bi-arrow-clockwise me-1"></i>Recalcular prioridades
+  </button>
+  {% endif %}
+</div>
+
+<!-- Filtros -->
+<div class="filtros">
+  <span class="text-muted" style="font-size:.82rem;line-height:2">Filtrar:</span>
+  <button class="btn btn-danger btn-urgencia active"   onclick="filtrar('critica', this)">● Crítica</button>
+  <button class="btn btn-warning btn-urgencia active"  onclick="filtrar('alta', this)">● Alta</button>
+  <button class="btn btn-info btn-urgencia active"     onclick="filtrar('media', this)">● Media</button>
+  <button class="btn btn-success btn-urgencia active"  onclick="filtrar('baja', this)">● Baja</button>
+  <button class="btn btn-outline-secondary btn-sm ms-2" onclick="centrarPuebla()">
+    <i class="bi bi-crosshair me-1"></i>Centrar
+  </button>
+</div>
+
+<!-- Mapa -->
+<div id="mapa"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const COLORES = {
+  critica: '#ff4d4f',
+  alta:    '#fa8c16',
+  media:   '#1890ff',
+  baja:    '#52c41a'
+};
+
+const map = L.map('mapa', {
+  minZoom: 11,
+  maxZoom: 18,
+  maxBounds: [
+    [18.7, -98.6],
+    [19.4, -97.8]
+  ],
+  maxBoundsViscosity: 1.0
+}).setView([19.0414, -98.2063], 13);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap'
+}).addTo(map);
+
+// Leyenda
+const legend = L.control({ position: 'bottomright' });
+legend.onAdd = () => {
+  const div = L.DomUtil.create('div', 'legend');
+  div.innerHTML = `
+    <strong style="font-size:.82rem">Nivel de urgencia</strong><br>
+    <span class="legend-dot" style="background:#ff4d4f"></span>Crítica (IP ≥ 80)<br>
+    <span class="legend-dot" style="background:#fa8c16"></span>Alta (IP 60-79)<br>
+    <span class="legend-dot" style="background:#1890ff"></span>Media (IP 40-59)<br>
+    <span class="legend-dot" style="background:#52c41a"></span>Baja (IP < 40)
+  `;
+  return div;
+};
+legend.addTo(map);
+
+let marcadores = [];
+let filtrosActivos = new Set(['critica', 'alta', 'media', 'baja']);
+
+function crearIcono(urgencia) {
+  const color = COLORES[urgencia] || '#aaa';
+  return L.divIcon({
+    className: '',
+    html: `<div style="
+      width:14px;height:14px;border-radius:50%;
+      background:${color};border:2px solid white;
+      box-shadow:0 1px 4px rgba(0,0,0,.3)">
+    </div>`,
+    iconSize: [14, 14],
+    iconAnchor: [7, 7]
+  });
+}
+
+function cargarReportes() {
+  fetch('/prioridad/datos')
+    .then(r => r.json())
+    .then(data => {
+      marcadores.forEach(m => map.removeLayer(m));
+      marcadores = [];
+
+      data.features.forEach(f => {
+        const p = f.properties;
+        const [lng, lat] = f.geometry.coordinates;
+
+        const m = L.marker([lat, lng], { icon: crearIcono(p.urgencia) })
+          .bindPopup(`
+            <div style="font-size:.85rem;min-width:180px">
+              <div style="font-weight:600;margin-bottom:4px">
+                <code>${p.codigo}</code>
+              </div>
+              <div><b>Tipo:</b> ${p.tipo}</div>
+              <div><b>Zona:</b> ${p.zona}</div>
+              <div><b>Estado:</b> ${p.estado.replace('_',' ')}</div>
+              <div><b>IP:</b> ${p.ip.toFixed(1)}</div>
+              <hr style="margin:6px 0"/>
+              <a href="/reportes/${p.id}" style="font-size:.8rem">Ver detalle →</a>
+            </div>
+          `);
+
+        m._urgencia = p.urgencia;
+        m.addTo(map);
+        marcadores.push(m);
+      });
+
+      aplicarFiltros();
+    });
+}
+
+function filtrar(urgencia, btn) {
+  btn.classList.toggle('active');
+  if (filtrosActivos.has(urgencia)) filtrosActivos.delete(urgencia);
+  else filtrosActivos.add(urgencia);
+  aplicarFiltros();
+}
+
+function aplicarFiltros() {
+  marcadores.forEach(m => {
+    if (filtrosActivos.has(m._urgencia)) m.addTo(map);
+    else map.removeLayer(m);
+  });
+}
+
+function centrarPuebla() {
+  map.setView([19.0414, -98.2063], 13);
+}
+
+function recalcularIP() {
+  fetch('/prioridad/recalcular', { method: 'POST',
+    headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+  })
+  .then(r => r.json())
+  .then(d => {
+    alert(d.mensaje);
+    cargarReportes();
+  });
+}
+
+cargarReportes();
+// Recargar cada 2 minutos
+setInterval(cargarReportes, 120000);
+</script>
+{% endblock %}

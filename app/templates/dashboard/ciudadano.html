@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Inicio — AquaNet Puebla{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h4 class="fw-semibold mb-0">Hola, {{ current_user.nombre.split()[0] }} 👋</h4>
+    <p class="text-muted mb-0" style="font-size:.87rem">Bienvenido a AquaNet Puebla</p>
+  </div>
+  <a href="{{ url_for('reportes.nuevo') }}" class="btn btn-primary btn-sm">
+    <i class="bi bi-plus-lg me-1"></i>Nuevo reporte
+  </a>
+</div>
+
+<!-- Tarjetas de acceso rápido -->
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card h-100 border-0" style="background:#e8f3ff;">
+      <div class="card-body p-4">
+        <i class="bi bi-flag-fill text-primary fs-2 mb-3 d-block"></i>
+        <h6 class="fw-semibold">Reportar incidencia</h6>
+        <p class="text-muted mb-3" style="font-size:.85rem">
+          Informa sobre fugas, cortes o problemas en la red de agua de tu colonia.
+        </p>
+        <a href="{{ url_for('reportes.nuevo') }}" class="btn btn-primary btn-sm">
+          Nuevo reporte
+        </a>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card h-100 border-0" style="background:#f0fff4;">
+      <div class="card-body p-4">
+        <i class="bi bi-search fs-2 mb-3 d-block" style="color:#52c41a"></i>
+        <h6 class="fw-semibold">Consultar reporte</h6>
+        <p class="text-muted mb-3" style="font-size:.85rem">
+          Ingresa tu código AQP-YYYY-NNNNN para ver el estado de tu reporte.
+        </p>
+        <a href="{{ url_for('reportes.consultar') }}" class="btn btn-sm"
+           style="background:#52c41a;color:#fff">Consultar</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Mis reportes recientes -->
+<div class="card">
+  <div class="card-header fw-medium d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-clock-history me-2"></i>Mis reportes recientes</span>
+    <a href="{{ url_for('reportes.index') }}" class="btn btn-outline-primary btn-sm">
+      Ver todos
+    </a>
+  </div>
+  {% if mis_reportes %}
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Código</th>
+          <th>Tipo</th>
+          <th>Estado</th>
+          <th>Prioridad</th>
+          <th>Fecha</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in mis_reportes %}
+        <tr>
+          <td><code>{{ r.codigo_seguimiento }}</code></td>
+          <td>{{ r.tipo_nombre }}</td>
+          <td>
+            <span class="badge bg-secondary">
+              {{ r.estado | replace('_',' ') | capitalize }}
+            </span>
+          </td>
+          <td>
+            <span class="badge badge-{{ r.nivel_urgencia }}">
+              {{ r.nivel_urgencia | capitalize }}
+            </span>
+          </td>
+          <td style="font-size:.82rem">{{ r.fecha_creacion | fecha_corta }}</td>
+          <td>
+            <a href="{{ url_for('reportes.detalle', reporte_id=r.id) }}"
+               class="btn btn-outline-primary btn-sm">Ver</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="text-center py-5 text-muted">
+    <i class="bi bi-flag fs-1 d-block mb-3 opacity-25"></i>
+    <p>Aún no tienes reportes.</p>
+    <a href="{{ url_for('reportes.nuevo') }}" class="btn btn-primary btn-sm">
+      Crear mi primer reporte
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

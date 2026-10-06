@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+{% block title %}Reporte {{ reporte.codigo_seguimiento }} — AquaNet Puebla{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h4 class="fw-semibold mb-0">
+        <i class="bi bi-flag me-2 text-primary"></i>
+        <code>{{ reporte.codigo_seguimiento }}</code>
+      </h4>
+      <a href="{{ url_for('reportes.index') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>Volver
+      </a>
+    </div>
+
+    <!-- Información del reporte -->
+    <div class="card mb-3">
+      <div class="card-body p-4">
+        <div class="row g-3">
+          <div class="col-sm-6">
+            <div class="text-muted mb-1" style="font-size:.78rem">TIPO DE PROBLEMA</div>
+            <div class="fw-medium">{{ reporte.tipo_nombre }}</div>
+          </div>
+          <div class="col-sm-6">
+            <div class="text-muted mb-1" style="font-size:.78rem">ESTADO</div>
+            <span class="badge bg-secondary fs-6">
+              {{ reporte.estado | replace('_',' ') | capitalize }}
+            </span>
+          </div>
+          <div class="col-sm-6">
+            <div class="text-muted mb-1" style="font-size:.78rem">PRIORIDAD</div>
+            <span class="badge badge-{{ reporte.nivel_urgencia }} fs-6">
+              {{ reporte.nivel_urgencia | capitalize }}
+              ({{ reporte.indice_prioridad | round(1) }})
+            </span>
+          </div>
+          <div class="col-sm-6">
+            <div class="text-muted mb-1" style="font-size:.78rem">FECHA DE REPORTE</div>
+            <div class="fw-medium">{{ reporte.fecha_creacion | fecha_corta }}</div>
+          </div>
+
+          <!-- Solo admin/operador ven quién reportó -->
+          {% if current_user.puede_gestionar_reportes %}
+          <div class="col-sm-6">
+            <div class="text-muted mb-1" style="font-size:.78rem">REPORTADO POR</div>
+            <div class="fw-medium">
+              {% if reporte.anonimo %}
+                <span class="text-muted">
+                  <i class="bi bi-person-fill-slash me-1"></i>Anónimo
+                </span>
+              {% elif reporte.ciudadano_nombre %}
+                <i class="bi bi-person me-1"></i>{{ reporte.ciudadano_nombre }}
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </div>
+          </div>
+          {% endif %}
+
+          {% if reporte.zona_nombre %}
+          <div class="col-sm-6">
+            <div class="text-muted mb-1" style="font-size:.78rem">ZONA</div>
+            <div class="fw-medium">{{ reporte.zona_nombre }}</div>
+          </div>
+          {% endif %}
+
+          {% if reporte.operador_nombre %}
+          <div class="col-sm-6">
+            <div class="text-muted mb-1" style="font-size:.78rem">OPERADOR ASIGNADO</div>
+            <div class="fw-medium">{{ reporte.operador_nombre }}</div>
+          </div>
+          {% endif %}
+
+          {% if reporte.descripcion %}
+          <div class="col-12">
+            <div class="text-muted mb-1" style="font-size:.78rem">DESCRIPCIÓN</div>
+            <div>{{ reporte.descripcion }}</div>
+          </div>
+          {% endif %}
+
+          <div class="col-12">
+            <div class="text-muted mb-1" style="font-size:.78rem">UBICACIÓN</div>
+            <div style="font-size:.85rem">
+              <i class="bi bi-geo-alt me-1 text-danger"></i>
+              {{ reporte.latitud }}, {{ reporte.longitud }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Foto de evidencia -->
+    {% if reporte.foto_url %}
+    <div class="card mb-3">
+      <div class="card-header fw-medium">
+        <i class="bi bi-image me-2"></i>Foto de evidencia
+      </div>
+      <div class="card-body p-3">
+        <img src="{{ url_for('static', filename=reporte.foto_url) }}"
+             class="img-fluid rounded" style="max-height:320px"/>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Acciones para admin/operador -->
+    {% if current_user.puede_gestionar_reportes %}
+      <div class="card mb-3">
+        <div class="card-header fw-medium">
+          <i class="bi bi-gear me-2"></i>Gestión del reporte
+        </div>
+        <div class="card-body p-3">
+
+          <!-- Asignar operador — solo admin -->
+          {% if current_user.es_administrador %}
+          <div class="mb-3">
+            <label class="form-label" style="font-size:.82rem">ASIGNAR OPERADOR</label>
+            <form method="POST"
+                  action="{{ url_for('reportes.asignar_operador', reporte_id=reporte.id) }}"
+                  class="d-flex gap-2">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}"/>
+              <select name="operador_id" class="form-select form-select-sm">
+                <option value="">Sin asignar</option>
+                {% for op in operadores %}
+                <option value="{{ op.id }}"
+                        {% if reporte.id_operador_asignado == op.id %}selected{% endif %}>
+                  {{ op.nombre }}
+                </option>
+                {% endfor %}
+              </select>
+              <button type="submit" class="btn btn-primary btn-sm">
+                Asignar
+              </button>
+            </form>
+          </div>
+          {% endif %}
+
+          <!-- Cambiar estado — admin y operador -->
+          <div>
+            <label class="form-label" style="font-size:.82rem">CAMBIAR ESTADO</label>
+            {% set estados_siguientes = {
+              'recibido':    'en_revision',
+              'en_revision': 'asignado',
+              'asignado':    'en_atencion',
+              'en_atencion': 'resuelto',
+              'resuelto':    'cerrado'
+            } %}
+            {% if reporte.estado in estados_siguientes %}
+            <form method="POST"
+                  action="{{ url_for('reportes.cambiar_estado', reporte_id=reporte.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}"/>
+              <input type="hidden" name="nuevo_estado"
+                    value="{{ estados_siguientes[reporte.estado] }}"/>
+              <button type="submit" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-arrow-right-circle me-1"></i>
+                Pasar a {{ estados_siguientes[reporte.estado] | replace('_',' ') | capitalize }}
+              </button>
+            </form>
+            {% else %}
+            <p class="text-muted mb-0" style="font-size:.85rem">Reporte cerrado.</p>
+            {% endif %}
+          </div>
+
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Timeline de seguimiento -->
+    <div class="card">
+      <div class="card-header fw-medium">
+        <i class="bi bi-clock-history me-2"></i>Seguimiento
+      </div>
+      <div class="card-body p-4">
+        {% set estados = ['recibido','en_revision','asignado','en_atencion','resuelto','cerrado'] %}
+        <div class="d-flex flex-column gap-2">
+          {% for est in estados %}
+          {% set activo = est == reporte.estado %}
+          {% set pasado = estados.index(est) < estados.index(reporte.estado) %}
+          <div class="d-flex align-items-center gap-3">
+            <span class="d-inline-flex align-items-center justify-content-center rounded-circle flex-shrink-0"
+                  style="width:28px;height:28px;font-size:.7rem;
+                         background:{% if activo %}#0057b8{% elif pasado %}#52c41a{% else %}#f0f2f5{% endif %};
+                         color:{% if activo or pasado %}#fff{% else %}#aaa{% endif %}">
+              {% if pasado %}<i class="bi bi-check-lg"></i>
+              {% elif activo %}<i class="bi bi-circle-fill" style="font-size:.4rem"></i>
+              {% else %}<i class="bi bi-circle" style="font-size:.4rem"></i>{% endif %}
+            </span>
+            <span style="font-size:.9rem;
+                         font-weight:{% if activo %}600{% else %}400{% endif %};
+                         color:{% if activo %}#0057b8{% elif pasado %}#3a4a6b{% else %}#aaa{% endif %}">
+              {{ est | replace('_',' ') | capitalize }}
+            </span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
